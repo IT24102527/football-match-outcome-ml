@@ -1,0 +1,13 @@
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+data/raw/database.sqlite
+data/processed/
+
+models/*.pkl
+models/*.joblib
+
+.DS_Store
+Thumbs.db
