@@ -69,6 +69,21 @@ source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+## Loading the data
+
+Always load data through the shared helper in `src/db.py`, never with ad-hoc `sqlite3` calls, so every
+member works from identical tables. The connection is read-only, so the raw file cannot be changed.
+
+```python
+import sys; sys.path.append("..")   # when running from notebooks/
+from src.db import list_tables, load_matches, load_teams, load_team_attributes
+
+list_tables()                  # every table with row/column counts
+matches = load_matches()       # Match + country/league/team names, date parsed
+teams = load_teams()
+team_attrs = load_team_attributes()
+```
+
 ## Repository structure
 
 ```
