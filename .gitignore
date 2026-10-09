@@ -4,7 +4,8 @@ __pycache__/
 .ipynb_checkpoints/
 
 data/raw/database.sqlite
-data/processed/
+data/processed/*
+!data/processed/features.csv
 
 models/*.pkl
 models/*.joblib
