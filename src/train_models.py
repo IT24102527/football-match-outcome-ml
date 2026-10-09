@@ -10,6 +10,14 @@ from dataclasses import dataclass
 from pathlib import Path
 
 import pandas as pd
+from sklearn.compose import ColumnTransformer
+from sklearn.dummy import DummyClassifier
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OneHotEncoder, StandardScaler
+from sklearn.tree import DecisionTreeClassifier
 
 
 TARGET_COLUMN = "match_outcome"
@@ -31,6 +39,14 @@ NUMERIC_FEATURE_COLUMNS = [
 CATEGORICAL_FEATURE_COLUMNS = ["league_id"]
 FEATURE_COLUMNS = NUMERIC_FEATURE_COLUMNS + CATEGORICAL_FEATURE_COLUMNS
 IDENTIFIER_COLUMNS = ["id", "date", "season"]
+RANDOM_STATE = 42
+MODEL_NAMES = [
+    "majority_baseline",
+    "logistic_regression",
+    "decision_tree",
+    "random_forest",
+    "knn",
+]
 
 
 @dataclass(frozen=True)
@@ -44,6 +60,14 @@ class PreparedData:
     train_rows: pd.DataFrame
     test_rows: pd.DataFrame
     imputation_values: dict[str, float]
+
+
+@dataclass(frozen=True)
+class TrainedModels:
+    """Fitted estimators and their test predictions."""
+
+    estimators: dict[str, object]
+    predictions: pd.DataFrame
 
 
 def load_features(path: str | Path) -> pd.DataFrame:
@@ -156,3 +180,117 @@ def build_split_summary(prepared: PreparedData) -> pd.DataFrame:
             },
         ]
     )
+
+
+def _build_preprocessor(scale_numeric: bool) -> ColumnTransformer:
+    """Build the same feature transformation contract for each estimator."""
+    numeric_transformer = StandardScaler() if scale_numeric else "passthrough"
+    return ColumnTransformer(
+        transformers=[
+            ("numeric", numeric_transformer, NUMERIC_FEATURE_COLUMNS),
+            (
+                "league",
+                OneHotEncoder(handle_unknown="ignore", sparse_output=False),
+                CATEGORICAL_FEATURE_COLUMNS,
+            ),
+        ],
+        remainder="drop",
+        verbose_feature_names_out=False,
+    )
+
+
+def build_models() -> dict[str, object]:
+    """Create the baseline and four required classifiers."""
+    return {
+        "majority_baseline": DummyClassifier(
+            strategy="most_frequent",
+        ),
+        "logistic_regression": Pipeline(
+            [
+                ("preprocessor", _build_preprocessor(scale_numeric=True)),
+                (
+                    "classifier",
+                    LogisticRegression(
+                        max_iter=2000,
+                        random_state=RANDOM_STATE,
+                    ),
+                ),
+            ]
+        ),
+        "decision_tree": Pipeline(
+            [
+                ("preprocessor", _build_preprocessor(scale_numeric=False)),
+                (
+                    "classifier",
+                    DecisionTreeClassifier(
+                        max_depth=8,
+                        min_samples_leaf=10,
+                        random_state=RANDOM_STATE,
+                    ),
+                ),
+            ]
+        ),
+        "random_forest": Pipeline(
+            [
+                ("preprocessor", _build_preprocessor(scale_numeric=False)),
+                (
+                    "classifier",
+                    RandomForestClassifier(
+                        n_estimators=300,
+                        max_depth=10,
+                        min_samples_leaf=5,
+                        random_state=RANDOM_STATE,
+                        n_jobs=-1,
+                    ),
+                ),
+            ]
+        ),
+        "knn": Pipeline(
+            [
+                ("preprocessor", _build_preprocessor(scale_numeric=True)),
+                (
+                    "classifier",
+                    KNeighborsClassifier(n_neighbors=11),
+                ),
+            ]
+        ),
+    }
+
+
+def fit_models(prepared: PreparedData) -> TrainedModels:
+    """Fit every model on the same chronological training matrix."""
+    estimators = build_models()
+    predictions = prepared.test_rows[["id", "date", "season"]].copy()
+    predictions["actual_outcome"] = prepared.y_test.to_numpy()
+
+    for name in MODEL_NAMES:
+        estimator = estimators[name]
+        estimator.fit(prepared.X_train, prepared.y_train)
+        predictions[f"{name}_prediction"] = estimator.predict(prepared.X_test)
+
+    return TrainedModels(estimators=estimators, predictions=predictions)
+
+
+def build_training_summary(
+    prepared: PreparedData,
+) -> pd.DataFrame:
+    """Return reproducibility metadata for the fitted model set."""
+    rows = []
+    for name in MODEL_NAMES:
+        rows.append(
+            {
+                "model": name,
+                "training_rows": len(prepared.X_train),
+                "test_rows": len(prepared.X_test),
+                "feature_count_before_encoding": len(FEATURE_COLUMNS),
+                "random_state": RANDOM_STATE if name != "majority_baseline" else "",
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def save_predictions(predictions: pd.DataFrame, path: str | Path) -> None:
+    """Persist test predictions with traceability columns."""
+    path = Path(path)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    predictions.to_csv(path, index=False)
