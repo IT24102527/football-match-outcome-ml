@@ -257,19 +257,34 @@ def build_match_level_feature_dataset() -> pd.DataFrame:
     ]
     return matches.loc[:, final_columns]
 
+def calculate_training_imputation_values(
+    df: pd.DataFrame,
+    test_season: str = "2015/2016",
+) -> dict:
+    """Calculate historical-feature medians using training seasons only."""
+    feature_columns = [
+        "Home_Form_Last_5",
+        "Away_Form_Last_5",
+        "Home_Avg_Goals_Last_5",
+        "Away_Avg_Goals_Last_5",
+        "Home_Avg_Conceded_Last_5",
+        "Away_Avg_Conceded_Last_5",
+        "Home_Win_Rate",
+        "Away_Win_Rate",
+    ]
+
+    training_data = df[df["season"] != test_season].copy()
+
+    if training_data.empty:
+        raise ValueError("Training data is empty.")
+
+    return training_data[feature_columns].median().to_dict()
 
 def impute_historical_features(
     df: pd.DataFrame,
     fill_values: dict,
 ) -> pd.DataFrame:
-    """
-    Fill missing historical feature values using supplied
-    training-derived fill values.
-
-    The fill values should be calculated from the training data
-    only to avoid temporal leakage.
-    """
-
+    """Impute historical features using training-derived values."""
     df = df.copy()
 
     feature_columns = [
@@ -283,18 +298,11 @@ def impute_historical_features(
         "Away_Win_Rate",
     ]
 
-    for column in feature_columns:
-        if column in fill_values:
-            df[column] = df[column].fillna(fill_values[column])
+    df[feature_columns] = df[feature_columns].fillna(fill_values)
 
-    # Recalculate derived features after imputation.
     df["Form_Diff"] = (
-        df["Home_Form_Last_5"]
-        - df["Away_Form_Last_5"]
+        df["Home_Form_Last_5"] - df["Away_Form_Last_5"]
     )
-
-    df["Abs_Form_Diff"] = (
-        df["Form_Diff"].abs()
-    )
+    df["Abs_Form_Diff"] = df["Form_Diff"].abs()
 
     return df

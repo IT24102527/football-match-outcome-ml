@@ -49,5 +49,29 @@ current-match event/stat columns are excluded.
 | `Form_Diff` | 544 |
 | `Abs_Form_Diff` | 544 |
 
-Imputation has **not** been performed yet. Any imputation must use
-training-derived values only to avoid temporal leakage.
+Missing historical features were imputed using training-derived values only to avoid temporal leakage.
+
+## Imputation
+
+The 2009/10–2014/15 seasons were used as the training period, with 2015/16
+reserved as the chronological test season.
+
+Missing historical features were imputed using the median calculated from the
+training seasons only. The test season was not used to calculate imputation
+values.
+
+Training-derived imputation values:
+
+- `Home_Form_Last_5`: 7.0
+- `Away_Form_Last_5`: 7.0
+- `Home_Avg_Goals_Last_5`: 1.2
+- `Away_Avg_Goals_Last_5`: 1.2
+- `Home_Avg_Conceded_Last_5`: 1.4
+- `Away_Avg_Conceded_Last_5`: 1.2
+- `Home_Win_Rate`: 0.454545
+- `Away_Win_Rate`: 0.260870
+
+After imputation, `Form_Diff` and `Abs_Form_Diff` were recalculated.
+
+Validation resulted in 22,653 rows, 17 columns, zero missing values, and zero
+duplicate match IDs.
