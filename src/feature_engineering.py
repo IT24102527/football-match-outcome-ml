@@ -212,3 +212,44 @@ def to_match_level(team_matches: pd.DataFrame) -> pd.DataFrame:
     )
 
     return match_features
+
+def impute_historical_features(
+    df: pd.DataFrame,
+    fill_values: dict,
+) -> pd.DataFrame:
+    """
+    Fill missing historical feature values using supplied
+    training-derived fill values.
+
+    The fill values should be calculated from the training data
+    only to avoid temporal leakage.
+    """
+
+    df = df.copy()
+
+    feature_columns = [
+        "Home_Form_Last_5",
+        "Away_Form_Last_5",
+        "Home_Avg_Goals_Last_5",
+        "Away_Avg_Goals_Last_5",
+        "Home_Avg_Conceded_Last_5",
+        "Away_Avg_Conceded_Last_5",
+        "Home_Win_Rate",
+        "Away_Win_Rate",
+    ]
+
+    for column in feature_columns:
+        if column in fill_values:
+            df[column] = df[column].fillna(fill_values[column])
+
+    # Recalculate derived features after imputation.
+    df["Form_Diff"] = (
+        df["Home_Form_Last_5"]
+        - df["Away_Form_Last_5"]
+    )
+
+    df["Abs_Form_Diff"] = (
+        df["Form_Diff"].abs()
+    )
+
+    return df

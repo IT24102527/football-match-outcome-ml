@@ -108,3 +108,17 @@ def remove_excluded_columns(df: pd.DataFrame) -> pd.DataFrame:
     )
 
     return df
+
+def remove_warmup_season(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Remove the 2008/09 warm-up season.
+
+    The first season has no prior historical match information,
+    so it is excluded before handling remaining cold-start rows.
+    """
+
+    df = df.copy()
+
+    df = df[df["season"] != "2008/2009"].copy()
+
+    return df.reset_index(drop=True)
