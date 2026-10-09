@@ -1,6 +1,14 @@
 import numpy as np
 import pandas as pd
 
+from src.db import load_matches
+from src.preprocessing import (
+    add_match_outcome,
+    remove_excluded_columns,
+    remove_warmup_season,
+    sort_matches_chronologically,
+)
+
 
 def build_team_long(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -212,6 +220,43 @@ def to_match_level(team_matches: pd.DataFrame) -> pd.DataFrame:
     )
 
     return match_features
+
+
+def build_match_level_feature_dataset() -> pd.DataFrame:
+    """Build the final match-level feature dataset without imputing missing values."""
+    matches = load_matches()
+    matches = sort_matches_chronologically(matches)
+    matches = add_match_outcome(matches)
+    matches = remove_excluded_columns(matches)
+
+    team_matches = build_team_long(matches)
+    team_matches = add_historical_features(team_matches)
+    match_features = to_match_level(team_matches)
+
+    matches = matches.merge(match_features, on="id", how="inner")
+    matches = remove_warmup_season(matches)
+
+    final_columns = [
+        "id",
+        "date",
+        "season",
+        "league_id",
+        "home_team_api_id",
+        "away_team_api_id",
+        "match_outcome",
+        "Home_Form_Last_5",
+        "Away_Form_Last_5",
+        "Home_Avg_Goals_Last_5",
+        "Away_Avg_Goals_Last_5",
+        "Home_Avg_Conceded_Last_5",
+        "Away_Avg_Conceded_Last_5",
+        "Home_Win_Rate",
+        "Away_Win_Rate",
+        "Form_Diff",
+        "Abs_Form_Diff",
+    ]
+    return matches.loc[:, final_columns]
+
 
 def impute_historical_features(
     df: pd.DataFrame,
