@@ -1,0 +1,3 @@
+split,rows,season_start,season_end,date_start,date_end
+train,19327,2009/2010,2014/2015,2009-07-11,2015-05-31
+test,3326,2015/2016,2015/2016,2015-07-17,2016-05-25
