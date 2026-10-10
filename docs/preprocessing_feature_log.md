@@ -75,3 +75,11 @@ After imputation, `Form_Diff` and `Abs_Form_Diff` were recalculated.
 
 Validation resulted in 22,653 rows, 17 columns, zero missing values, and zero
 duplicate match IDs.
+
+## Phase 5 — Train/test preparation
+
+- The final chronological test season is `2015/2016`. All rows from `2009/2010` through `2014/2015` are training rows.
+- Rows are sorted by `date` and `id` before splitting.
+- Historical-feature medians are calculated using training rows only, then applied to both training and test rows. The test season is not used to calculate imputation values.
+- The model feature matrix uses the ten historical numeric features plus `league_id`.
+- `id`, `date`, and `season` are retained for traceability, while `match_outcome` is the target. These four columns are excluded from the predictor matrix.
