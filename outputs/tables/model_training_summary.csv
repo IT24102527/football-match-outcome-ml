@@ -1,6 +1,6 @@
-model,training_rows,test_rows,feature_count_before_encoding,random_state
-majority_baseline,19327,3326,11,
-logistic_regression,19327,3326,11,42
-decision_tree,19327,3326,11,42
-random_forest,19327,3326,11,42
-knn,19327,3326,11,42
+model,training_rows,test_rows,feature_count_before_encoding,random_state,selected_config
+majority_baseline,19327,3326,11,,{}
+logistic_regression,19327,3326,11,42,"{'C': 1.0, 'class_weight': 'balanced'}"
+decision_tree,19327,3326,11,42,"{'max_depth': 5, 'min_samples_leaf': 5, 'class_weight': 'balanced'}"
+random_forest,19327,3326,11,42,"{'n_estimators': 300, 'max_depth': 8, 'min_samples_leaf': 1, 'class_weight': 'balanced'}"
+knn,19327,3326,11,42,{'n_neighbors': 11}
