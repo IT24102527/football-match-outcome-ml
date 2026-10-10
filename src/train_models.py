@@ -14,6 +14,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.dummy import DummyClassifier
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import f1_score
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
@@ -22,6 +23,15 @@ from sklearn.tree import DecisionTreeClassifier
 
 TARGET_COLUMN = "match_outcome"
 TEST_SEASON = "2015/2016"
+VALIDATION_SEASON = "2014/2015"
+TRAINING_SEASONS = [
+    "2009/2010",
+    "2010/2011",
+    "2011/2012",
+    "2012/2013",
+    "2013/2014",
+]
+FULL_TRAINING_SEASONS = TRAINING_SEASONS + [VALIDATION_SEASON]
 LABELS = ["Home Win", "Draw", "Away Win"]
 
 NUMERIC_FEATURE_COLUMNS = [
@@ -70,6 +80,14 @@ class TrainedModels:
     predictions: pd.DataFrame
 
 
+@dataclass(frozen=True)
+class TuningResult:
+    """Validation-season tuning results and selected model configurations."""
+
+    selected_configs: dict[str, dict[str, object]]
+    tried_configs: pd.DataFrame
+
+
 def load_features(path: str | Path) -> pd.DataFrame:
     """Load and validate the engineered feature dataset."""
     features = pd.read_csv(path, parse_dates=["date"])
@@ -104,6 +122,7 @@ def summarize_class_distribution(
 def chronological_split(
     features: pd.DataFrame,
     test_season: str = TEST_SEASON,
+    train_seasons: list[str] | None = None,
 ) -> PreparedData:
     """Split by season and impute historical features using training rows only."""
     required = set(FEATURE_COLUMNS + IDENTIFIER_COLUMNS + [TARGET_COLUMN])
@@ -116,7 +135,10 @@ def chronological_split(
     ordered = ordered.sort_values(["date", "id"]).reset_index(drop=True)
 
     test_rows = ordered.loc[ordered["season"] == test_season].copy()
-    train_rows = ordered.loc[ordered["season"] != test_season].copy()
+    if train_seasons is None:
+        train_rows = ordered.loc[ordered["season"] != test_season].copy()
+    else:
+        train_rows = ordered.loc[ordered["season"].isin(train_seasons)].copy()
     if train_rows.empty or test_rows.empty:
         raise ValueError("Both chronological train and test sets must be non-empty.")
     if train_rows["date"].max() >= test_rows["date"].min():
@@ -199,8 +221,15 @@ def _build_preprocessor(scale_numeric: bool) -> ColumnTransformer:
     )
 
 
-def build_models() -> dict[str, object]:
-    """Create the baseline and four required classifiers."""
+def build_models(
+    configs: dict[str, dict[str, object]] | None = None,
+) -> dict[str, object]:
+    """Create the baseline and four classifiers from selected configurations."""
+    configs = configs or {}
+    logistic_config = configs.get("logistic_regression", {})
+    tree_config = configs.get("decision_tree", {})
+    forest_config = configs.get("random_forest", {})
+    knn_config = configs.get("knn", {})
     return {
         "majority_baseline": DummyClassifier(
             strategy="most_frequent",
@@ -213,6 +242,8 @@ def build_models() -> dict[str, object]:
                     LogisticRegression(
                         max_iter=2000,
                         random_state=RANDOM_STATE,
+                        class_weight=logistic_config.get("class_weight", "balanced"),
+                        C=logistic_config.get("C", 1.0),
                     ),
                 ),
             ]
@@ -223,8 +254,9 @@ def build_models() -> dict[str, object]:
                 (
                     "classifier",
                     DecisionTreeClassifier(
-                        max_depth=8,
-                        min_samples_leaf=10,
+                        max_depth=tree_config.get("max_depth", 8),
+                        min_samples_leaf=tree_config.get("min_samples_leaf", 10),
+                        class_weight=tree_config.get("class_weight", "balanced"),
                         random_state=RANDOM_STATE,
                     ),
                 ),
@@ -236,9 +268,10 @@ def build_models() -> dict[str, object]:
                 (
                     "classifier",
                     RandomForestClassifier(
-                        n_estimators=300,
-                        max_depth=10,
-                        min_samples_leaf=5,
+                        n_estimators=forest_config.get("n_estimators", 300),
+                        max_depth=forest_config.get("max_depth", 10),
+                        min_samples_leaf=forest_config.get("min_samples_leaf", 5),
+                        class_weight=forest_config.get("class_weight", "balanced"),
                         random_state=RANDOM_STATE,
                         n_jobs=-1,
                     ),
@@ -250,16 +283,21 @@ def build_models() -> dict[str, object]:
                 ("preprocessor", _build_preprocessor(scale_numeric=True)),
                 (
                     "classifier",
-                    KNeighborsClassifier(n_neighbors=11),
+                    KNeighborsClassifier(
+                        n_neighbors=knn_config.get("n_neighbors", 11),
+                    ),
                 ),
             ]
         ),
     }
 
 
-def fit_models(prepared: PreparedData) -> TrainedModels:
+def fit_models(
+    prepared: PreparedData,
+    configs: dict[str, dict[str, object]] | None = None,
+) -> TrainedModels:
     """Fit every model on the same chronological training matrix."""
-    estimators = build_models()
+    estimators = build_models(configs)
     predictions = prepared.test_rows[["id", "date", "season"]].copy()
     predictions["actual_outcome"] = prepared.y_test.to_numpy()
 
@@ -271,8 +309,92 @@ def fit_models(prepared: PreparedData) -> TrainedModels:
     return TrainedModels(estimators=estimators, predictions=predictions)
 
 
+def tune_models(
+    features: pd.DataFrame,
+    validation_season: str = VALIDATION_SEASON,
+) -> TuningResult:
+    """Select hyperparameters on 2014/15 using macro F1 only."""
+    tuning_train = chronological_split(
+        features,
+        test_season=validation_season,
+        train_seasons=TRAINING_SEASONS,
+    )
+    candidates = {
+        "logistic_regression": [
+            {"C": value, "class_weight": "balanced"}
+            for value in [0.1, 1.0, 10.0]
+        ],
+        "decision_tree": [
+            {
+                "max_depth": depth,
+                "min_samples_leaf": leaf,
+                "class_weight": "balanced",
+            }
+            for depth in [5, 8, 10]
+            for leaf in [5, 10]
+        ],
+        "random_forest": [
+            {
+                "n_estimators": trees,
+                "max_depth": depth,
+                "min_samples_leaf": leaf,
+                "class_weight": "balanced",
+            }
+            for trees in [200, 300]
+            for depth in [8, 10]
+            for leaf in [1, 5]
+        ],
+        "knn": [{"n_neighbors": value} for value in [5, 11, 21]],
+    }
+    tried = []
+    selected: dict[str, dict[str, object]] = {}
+
+    for model_name, model_candidates in candidates.items():
+        best_score = -1.0
+        best_config: dict[str, object] | None = None
+        best_row_index: int | None = None
+        for config in model_candidates:
+            estimator = build_models({model_name: config})[model_name]
+            estimator.fit(tuning_train.X_train, tuning_train.y_train)
+            prediction = estimator.predict(tuning_train.X_test)
+            score = float(
+                f1_score(
+                    tuning_train.y_test,
+                    prediction,
+                    labels=LABELS,
+                    average="macro",
+                    zero_division=0,
+                )
+            )
+            tried.append(
+                {
+                    "model": model_name,
+                    "validation_season": validation_season,
+                    "macro_f1": score,
+                    "selected": False,
+                    **config,
+                }
+            )
+            if score > best_score:
+                best_score = score
+                best_config = config
+                best_row_index = len(tried) - 1
+        if best_config is None:
+            raise ValueError(f"No tuning candidates found for {model_name}.")
+        selected[model_name] = best_config
+        if best_row_index is None:
+            raise ValueError(f"No selected tuning row found for {model_name}.")
+        tried[best_row_index]["selected"] = True
+
+    return TuningResult(
+        selected_configs=selected,
+        tried_configs=pd.DataFrame(tried),
+    )
+
+
 def build_training_summary(
     prepared: PreparedData,
+    configs: dict[str, dict[str, object]] | None = None,
 ) -> pd.DataFrame:
     """Return reproducibility metadata for the fitted model set."""
     rows = []
@@ -284,6 +406,7 @@ def build_training_summary(
                 "test_rows": len(prepared.X_test),
                 "feature_count_before_encoding": len(FEATURE_COLUMNS),
                 "random_state": RANDOM_STATE if name != "majority_baseline" else "",
+                "selected_config": str((configs or {}).get(name, {})),
             }
         )
     return pd.DataFrame(rows)
