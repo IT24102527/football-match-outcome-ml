@@ -1,0 +1,10 @@
+model,actual,predicted,count
+knn,Home Win,Home Win,865
+knn,Draw,Home Win,431
+knn,Away Win,Home Win,429
+knn,Home Win,Draw,267
+knn,Draw,Draw,158
+knn,Away Win,Draw,173
+knn,Home Win,Away Win,327
+knn,Draw,Away Win,266
+knn,Away Win,Away Win,410
