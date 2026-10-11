@@ -67,7 +67,65 @@ The hash must match the SHA-256 above.
 python3 -m venv .venv
 source .venv/bin/activate          # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
+python -c "import sklearn; print(sklearn.__version__)"   # should print 1.9.1
 ```
+
+Tested with Python 3.12 (macOS) and Python 3.13; the preprocessing notebooks were also run on Windows.
+`requirements.txt` pins every library version, but not the Python version itself.
+
+## Reproducing the results
+
+Run the notebooks **in this order**, each top to bottom (**Kernel → Restart & Run All**). The full pipeline takes
+under a minute.
+
+| # | Notebook | Owner | Produces | Needs the database? |
+|---|---|---|---|---|
+| 1 | `01_data_understanding.ipynb` | Ahamed | Table inspection, coverage figure (`outputs/figures/eda_01_*`) | Yes |
+| 2 | `02_eda.ipynb` | Ahamed | Target, data-quality and pattern analysis (`outputs/figures/eda_02_*` – `eda_10_*`) | Yes |
+| 3 | `03_preprocessing.ipynb` | Umair | Target creation, column exclusion, chronological sort | Yes |
+| 4 | `04_feature_engineering.ipynb` | Umair | **`data/processed/features.csv`** (22,653 matches × 17 columns) | Yes |
+| 5 | `04a_feature_validation.ipynb` | Ahamed | Independent rebuild and leakage tests of `features.csv` | Yes |
+| 6 | `05_modeling.ipynb` | Yusuf | Tuning on 2014/15, final models, `outputs/predictions/test_predictions.csv` | No |
+| 7 | `06_evaluation.ipynb` | Yusuf | `outputs/tables/model_comparison.csv`, per-class metrics, confusion matrices | No |
+| 8 | `07_eda_to_recommendation.ipynb` | Ahamed | Accuracy and draw predictions by form gap | No |
+| 9 | `08_model_selection.ipynb` | Jassim | Final model choice, feature importance and coefficients | No |
+
+`data/processed/features.csv` is committed, so notebooks 05–08 can be run without downloading the database.
+
+**Expected reproducibility** (checked by a clean re-run of all nine notebooks on 2026-10-11):
+
+- Notebooks 01–04a reproduce their outputs exactly, including `features.csv`.
+- Logistic Regression (the selected model), Decision Tree, KNN and the baseline reproduce exactly on any machine.
+- **Random Forest** can differ slightly between operating systems / CPU architectures even with fixed seeds and identical
+  library versions (e.g. macOS on Apple silicon vs Windows on x86): about 2.5% of its test predictions and up to ±0.003
+  macro F1. Rankings and conclusions are unchanged. The final committed outputs are produced by one clean run on a
+  single machine before submission.
+
+## Key results
+
+Test season 2015/16 (3,326 matches), never used for training or tuning:
+
+| Model | Accuracy | Macro F1 |
+|---|---|---|
+| **Logistic Regression (selected, D-029)** | 45.5% | **0.434** |
+| Random Forest | 44.4% | 0.434 |
+| Majority baseline | 43.9% | 0.203 |
+
+The strongest pre-match signals are each team's earlier win rate **at the same venue** (home team at home, away team
+away). Full comparison: `outputs/tables/model_comparison.csv`; narrative and recommendations:
+`docs/eda_to_recommendation.md`.
+
+## Documentation
+
+| File | Contents |
+|---|---|
+| `logs/decision_log.md` | Every project decision with options considered and reasons (D-001 onwards) |
+| `logs/eda_insight_log.md` | EDA findings with evidence and modelling impact (EDA-01 onwards) |
+| `docs/data_dictionary.md` | Raw database columns and the engineered `features.csv` |
+| `docs/preprocessing_feature_log.md` | Preprocessing, feature engineering and split details |
+| `docs/eda_handoff.md` | What each phase needed from the EDA |
+| `docs/eda_to_recommendation.md` | EDA findings vs model results, recommendations and limitations |
+| `docs/ai_use_declaration.md` | AI-tool use, declared per member |
 
 ## Loading the data
 
