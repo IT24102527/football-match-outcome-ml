@@ -14,14 +14,15 @@ upcoming matches**.
 
 | Model | Accuracy | Macro F1 | Draw recall |
 |---|---|---|---|
-| **Logistic Regression** (balanced) | 45.5% | **0.434** | 28.1% |
-| **Random Forest** (balanced) | 44.4% | **0.434** | 36.5% |
-| Decision Tree (balanced) | 42.8% | 0.427 | 42.3% |
-| KNN | 43.1% | 0.389 | 18.5% |
-| Majority baseline ("always Home Win") | 43.9% | 0.203 | 0% |
+| **Logistic Regression** (balanced) | 45.46% | **0.4342** | 28.1% |
+| **Random Forest** (balanced) | 44.38% | **0.4341** | 36.5% |
+| Decision Tree (balanced) | 42.81% | 0.4265 | 42.3% |
+| KNN | 43.08% | 0.3893 | 18.5% |
+| Majority baseline ("always Home Win") | 43.87% | 0.2033 | 0% |
 
-Logistic Regression and Random Forest are **tied on macro F1** (difference < 0.001). Random Forest's score also varies by
-about ±0.003 across operating systems (see the PR #8 review), so neither is a clear winner on performance alone.
+Logistic Regression and Random Forest are effectively tied on macro F1: 0.434166 vs 0.434126 (difference ≈0.00004). This is much smaller than the reported ±0.003 cross-operating-system variation for Random Forest (PR #8 review).
+
+**Final selection: Logistic Regression (balanced, C=1.0).** Since macro F1 does not meaningfully separate the top two, Logistic Regression is selected for its slightly higher accuracy (45.46% vs 44.38%) and more straightforward explanation through coefficient directions. Random Forest remains preferable if higher Draw recall is the main priority (36.5% vs 28.1%). The choice uses the model configurations selected on 2014/15; the 2015/16 test season was not used for further tuning.
 
 ## 2. Did the EDA predict the model behaviour?
 
@@ -34,8 +35,7 @@ about ±0.003 across operating systems (see the PR #8 review), so neither is a c
 | **EDA-26**: form vs goal difference correlation is only r = 0.27 | Macro F1 would stay modest | ✅ Best macro F1 is 0.434, a real improvement on the baseline but far from certainty |
 | **EDA-28**: closeness of form barely changes the draw rate | Draw predictions would be unreliable | ✅ The models predict a draw in **41–55%** of evenly matched games, but only **28.5%** end level. In mismatches they predict 4–5% draws, but **22%** end level |
 
-**Conclusion:** every major model behaviour was anticipated by the EDA. The results are **explainable from the data**,
-not artefacts of a particular algorithm.
+**Conclusion:** the EDA correctly anticipated the class-imbalance challenge, modest overall performance, and the value of form differences. The test-set subgroup analysis adds a useful detail: the models over-predict draws in close games and miss many draws in mismatches. This is an observed limitation, not something the EDA fully predicted.
 
 ## 3. Where the model is useful, and where it is not
 
@@ -61,18 +61,21 @@ Accuracy by pre-match form gap (`outputs/tables/accuracy_by_form_gap.csv`):
    example extra opposition analysis before matches the model flags as likely defeats.
 2. **Treat close fixtures as open.** For evenly matched teams, the model does no better than assuming a home win. Pair
    it with scouting, tactical and squad information the dataset does not contain.
-3. **Do not plan around predicted draws.** About 1 in 4 matches is a draw whatever the form (EDA-28). Where a draw
-   matters, use the model's **probabilities** rather than its single predicted label.
-4. **Watch recent form and venue record first.** Points from the last 5 matches, goals scored and conceded, and the
-   team's record at that venue are the pre-match indicators with measurable signal (EDA-24, EDA-25, EDA-33).
-   *To be confirmed with Yusuf's Phase 8 feature importance.*
+3. **Treat draw predictions cautiously.** About 1 in 4 matches is a draw across form-gap groups (EDA-28). If staff use
+   class probabilities rather than one predicted label, validate or calibrate those probabilities before setting operational
+   thresholds; calibration was not evaluated in this project.
+4. **Prioritise each team's record at the relevant venue.** The home team's earlier home-win rate and the away team's
+   earlier away-win rate are the strongest measured signals: shuffling either lowers test macro F1 by about 0.02 in both
+   models. Recent form still provides context, but it adds little unique signal once venue win rates are included. Because
+   related features can share importance, this does not mean recent form is irrelevant (D-030; see
+   `outputs/tables/permutation_importance.csv` and `outputs/figures/phase8_permutation_importance.png`).
 5. **Do not assume a fixed home advantage.** It exists in every league but varies (+7.8 points in Scotland to +20.9 in
    Spain, EDA-23) and is shrinking over time (EDA-09). League-specific, up-to-date expectations are more accurate.
 6. **Retrain each season.** Because the home-win share drifts, a model trained on older seasons gradually over-rates the
    home side. Refit before each new season, keeping the same chronological validation (D-021, D-028).
-7. **Choosing between the two top models:** they are tied on performance, so choose on purpose. **Logistic Regression**
-   is easier to explain to coaching staff (each feature has a direction and weight). **Random Forest** recognises more
-   draws (36.5% vs 28.1% recall). Final choice: Yusuf (Phase 8), recorded in the decision log.
+7. **Use Logistic Regression as the default decision-support model.** Its macro F1 is effectively tied with Random Forest,
+   its accuracy is slightly higher, and its coefficient directions are easier to explain. If identifying more draws becomes
+   the priority, compare Random Forest as an alternative because it has higher Draw recall (36.5% vs 28.1%).
 
 ## 5. Limitations that bound these recommendations
 
@@ -85,9 +88,9 @@ Accuracy by pre-match form gap (`outputs/tables/accuracy_by_form_gap.csv`):
 | Promoted teams start with no history | 544 cold-start matches use imputed (median) form | EDA-30, D-019 |
 | Short-history win rates (1–4 matches) can be exactly 0 or 1 | Noisy inputs for about 2% of rows | EDA-39, D-025 |
 | One test season only | Results reflect 2015/16; other seasons may differ by a few points | D-021 |
-| Random Forest results vary slightly across operating systems | About ±0.003 macro F1; ranking unchanged | PR #8 review |
+| Random Forest results vary slightly across operating systems | About ±0.003 macro F1; the tiny LR/RF difference should not be treated as a robust ranking | PR #8 review |
+| Predicted probabilities were not calibrated or evaluated | Probability-based thresholds may be unreliable | Not evaluated in this project |
 
-## 6. Still to add
+## 6. AI-use declaration note
 
-- **Feature importance / coefficients (Yusuf, Phase 8):** confirm or revise recommendation 4.
-- **Final model choice (Yusuf, Phase 8):** confirm recommendation 7.
+OpenAI Codex assisted with structuring the Phase 8 notebook, running the feature-importance analysis, and drafting the model-selection explanation and stakeholder-facing text. Reported metrics and interpretation outputs were generated from the project’s saved data and code. The student/team should review the final wording and outputs before submission.
