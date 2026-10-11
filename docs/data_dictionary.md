@@ -2,7 +2,8 @@
 
 Owner: Ahamed M.A.U (IT24101779) · Phase 1: Data Understanding & EDA
 Source: `data/raw/database.sqlite` (Kaggle `hugomathien/soccer`, SHA-256 `4df85697…f11139a9`, see README)
-All counts and percentages below are computed from the full database (`notebooks/01_data_understanding.ipynb`).
+Sections 1–5 describe the raw database; counts and percentages are computed from it (`notebooks/01_data_understanding.ipynb`).
+Section 6 describes the engineered modelling dataset `data/processed/features.csv`.
 
 ### Role legend
 
@@ -91,7 +92,9 @@ after 2012/13. Bookmaker names follow the standard Football-Data column codes.
 
 | Column | Definition | Values | Role |
 |---|---|---|---|
-| `target` | `home_team_goal > away_team_goal` → Home Win; `=` → Draw; `<` → Away Win (D-004) | Home Win / Draw / Away Win | **Target** |
+| `match_outcome` | `home_team_goal > away_team_goal` → Home Win; `=` → Draw; `<` → Away Win (D-004) | Home Win / Draw / Away Win | **Target** |
+
+Called `target` inside `02_eda.ipynb`; `match_outcome` everywhere from preprocessing onwards (`src/preprocessing.py`, `features.csv`).
 
 ---
 
@@ -167,3 +170,68 @@ dimensions exist only as classes.
 | `Player` | 11,060 × 7 | Player name, birthday, height, weight | Player-level; the lens is team form and home advantage (D-003) |
 | `Player_Attributes` | 183,978 × 42 | Dated FIFA player ratings | Player-level; would need line-up reconstruction and time alignment |
 | `sqlite_sequence` | 7 × 2 | SQLite internal | Not data |
+
+---
+
+## 6. Modelling dataset: `data/processed/features.csv` (22,653 rows × 17 columns)
+
+**One row = one league match from 2009/10 to 2015/16**, with only information available **before kickoff** plus the
+target. Built by `src/feature_engineering.py` (`notebooks/04_feature_engineering.ipynb`, Umair M.W.M) and independently
+validated in `notebooks/04a_feature_validation.ipynb` (EDA-34–EDA-37).
+
+- **Rows:** all 25,979 matches minus the 3,326 matches of the 2008/09 warm-up season (D-019). 2008/09 is still used as
+  *history* for the features; it just isn't a modelling row. 11 leagues, 285 teams, 2009-07-11 to 2016-05-25,
+  `id` unique.
+- **Split (D-021):** train = 2009/10–2014/15 (19,327 rows), test = 2015/16 (3,326 rows). Tuning uses 2014/15 as the
+  validation season (D-028).
+- **History rule (D-020):** every feature uses only the team's **strictly earlier** matches (`shift(1)` before
+  `rolling`/`expanding`), across seasons (EDA-31), grouped by `team_api_id` (D-017).
+- **Imputation (D-019, D-022):** cold-start rows (team has fewer than 5 earlier matches, or no earlier match at that
+  venue) are filled with the **median of the training seasons only**. The "imputed" column gives the number of filled
+  rows (of which in the 2015/16 test season).
+
+### 6.1 Identifiers and target (not model inputs, except `league_id`)
+
+| Column | Type | Meaning | Example | Range / values | Role |
+|---|---|---|---|---|---|
+| `id` | int64 | Match ID (= `Match.id`) | 24738 | unique | Key |
+| `date` | str (YYYY-MM-DD) | Match date | `2009-07-11` | 2009-07-11 – 2016-05-25 | Ordering / traceability |
+| `season` | str | Season label | `2009/2010` | 7 seasons | Split key (D-021) |
+| `league_id` | int64 | League (→ `League.id`) | 24558 | 11 values | **Model input** (one-hot encoded) |
+| `home_team_api_id` | int64 | Home team (→ `Team.team_api_id`) | 9930 | 285 teams | Key |
+| `away_team_api_id` | int64 | Away team (→ `Team.team_api_id`) | 9956 | 285 teams | Key |
+| `match_outcome` | str | Full-time result (D-004) | `Home Win` | Home Win 10,351 (45.7%) · Draw 5,765 (25.4%) · Away Win 6,537 (28.9%) | **Target** |
+
+### 6.2 Historical features (model inputs)
+
+| Column | Type | Definition (strictly earlier matches only) | Example | Range (median) | Imputed (test) | Fill value |
+|---|---|---|---|---|---|---|
+| `Home_Form_Last_5` | float64 | Home team's points (W=3, D=1, L=0) in its last 5 matches, any venue | 7.0 | 0 – 15 (7) | 276 (32) | 7.0 |
+| `Away_Form_Last_5` | float64 | Away team's points in its last 5 matches, any venue | 8.0 | 0 – 15 (7) | 279 (33) | 7.0 |
+| `Home_Avg_Goals_Last_5` | float64 | Home team's mean goals **scored** in its last 5 matches | 1.4 | 0 – 5.8 (1.2) | 276 (32) | 1.2 |
+| `Away_Avg_Goals_Last_5` | float64 | Away team's mean goals scored in its last 5 matches | 2.2 | 0 – 5.0 (1.2) | 279 (33) | 1.2 |
+| `Home_Avg_Conceded_Last_5` | float64 | Home team's mean goals **conceded** in its last 5 matches | 1.2 | 0 – 4.4 (1.4) | 276 (32) | 1.4 |
+| `Away_Avg_Conceded_Last_5` | float64 | Away team's mean goals conceded in its last 5 matches | 1.2 | 0 – 4.6 (1.2) | 279 (33) | 1.2 |
+| `Home_Win_Rate` | float64 | Home team's win rate in **all its earlier home matches** (expanding mean) | 0.500 | 0 – 1 (0.452) | 111 (13) | 0.4545 |
+| `Away_Win_Rate` | float64 | Away team's win rate in **all its earlier away matches** (expanding mean) | 0.222 | 0 – 1 (0.262) | 111 (13) | 0.2609 |
+| `Form_Diff` | float64 | `Home_Form_Last_5 − Away_Form_Last_5` (recomputed after imputation) | −1.0 | −15 – +15 (0) | 544 (64)* | derived |
+| `Abs_Form_Diff` | float64 | `abs(Form_Diff)`, closeness of the two teams' form | 1.0 | 0 – 15 (3) | 544 (64)* | derived |
+
+\* Rows where either team's form was imputed.
+
+**Notes for interpretation**
+
+- Form values are whole numbers (0–15), and last-5 goal averages move in steps of 0.2.
+- Win rates from very short histories (1–4 earlier venue matches, about 2% of rows) can be exactly 0 or 1. They are
+  kept unsmoothed (EDA-39, D-025).
+- Features of the same team are moderately correlated (form vs goals scored r ≈ 0.72); home-team and away-team features
+  are not (|r| ≤ 0.06) (EDA-33).
+
+### 6.3 Considered but not included
+
+| Candidate | Why not included | Decision |
+|---|---|---|
+| Team_Attributes ratings | Valid prior snapshot for both teams in only 74.5% of matches; not validated in the final dataset | D-026 |
+| Rest days since last match | Gaps up to 1,877 days would need capping or a break flag | D-027 |
+| Betting odds | Excluded by design; 100% missing for two leagues | D-011, D-016 |
+| In-match events, line-ups | Leakage / player-level | D-010, D-016 |
