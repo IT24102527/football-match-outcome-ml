@@ -1,0 +1,10 @@
+split,class,count,percentage
+overall,Home Win,10351,45.6937
+overall,Draw,5765,25.4492
+overall,Away Win,6537,28.8571
+train,Home Win,8892,46.0082
+train,Draw,4910,25.4049
+train,Away Win,5525,28.587
+test,Home Win,1459,43.8665
+test,Draw,855,25.7066
+test,Away Win,1012,30.4269

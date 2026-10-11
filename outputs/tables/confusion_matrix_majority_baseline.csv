@@ -1,0 +1,10 @@
+model,actual,predicted,count
+majority_baseline,Home Win,Home Win,1459
+majority_baseline,Draw,Home Win,855
+majority_baseline,Away Win,Home Win,1012
+majority_baseline,Home Win,Draw,0
+majority_baseline,Draw,Draw,0
+majority_baseline,Away Win,Draw,0
+majority_baseline,Home Win,Away Win,0
+majority_baseline,Draw,Away Win,0
+majority_baseline,Away Win,Away Win,0

@@ -1,0 +1,10 @@
+model,actual,predicted,count
+logistic_regression,Home Win,Home Win,741
+logistic_regression,Draw,Home Win,283
+logistic_regression,Away Win,Home Win,219
+logistic_regression,Home Win,Draw,335
+logistic_regression,Draw,Draw,240
+logistic_regression,Away Win,Draw,262
+logistic_regression,Home Win,Away Win,383
+logistic_regression,Draw,Away Win,332
+logistic_regression,Away Win,Away Win,531
