@@ -18,7 +18,8 @@ from an AI tool directly. The report's AI-use section is assembled from this fil
   `04a_feature_validation.ipynb` and `07_eda_to_recommendation.ipynb`; fixing `requirements.txt` for macOS/Linux.
 - **Write-ups:** first drafts of the notebook commentary, `docs/data_dictionary.md`, `logs/eda_insight_log.md`
   (EDA-01–EDA-39), decision log entries D-001–D-018 (D-001–D-012 transcribed from the Initial Submission),
-  `docs/eda_handoff.md` and `docs/eda_to_recommendation.md`.
+  `docs/eda_handoff.md` and `docs/eda_to_recommendation.md` (both later merged into the final report and removed from
+  the repo), and the final report draft.
 - **Review support:** re-running teammates' notebooks to check that their outputs reproduce, and drafting PR review
   comments and the Phase 8 brief for Jassim.
 
@@ -41,7 +42,7 @@ from an AI tool directly. The report's AI-use section is assembled from this fil
 
 ## Jassim M.N.M (IT24103137): Business & Project Understanding, Phase 8
 
-*Moved unchanged from `docs/eda_to_recommendation.md` §6. Jassim to rewrite in his own words, and to add a line
+*Moved unchanged from the former `docs/eda_to_recommendation.md` §6. Jassim to rewrite in his own words, and to add a line
 noting that the Phase 8 brief he followed was prepared with AI assistance:*
 
 > OpenAI Codex assisted with structuring the Phase 8 notebook, running the feature-importance analysis, and drafting

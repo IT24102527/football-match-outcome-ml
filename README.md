@@ -42,17 +42,14 @@ repository; it is listed in `.gitignore`.
 
 ### Getting the data
 
-Option A: Kaggle CLI (needs a Kaggle API token in `~/.kaggle/`)
+Download it from the Kaggle page above, or with the Kaggle CLI (needs a Kaggle API token in `~/.kaggle/`):
 
 ```bash
 pip install kaggle
 kaggle datasets download hugomathien/soccer -p data/raw --unzip
 ```
 
-Option B: Google Drive mirror. Download `database.sqlite` from the group's shared Drive folder:
-**[Google Drive link: to be added]**
-
-Either way, place the file at `data/raw/database.sqlite` and check that it is the same file:
+Place the file at `data/raw/database.sqlite` and check that it is the same file:
 
 ```bash
 shasum -a 256 data/raw/database.sqlite      # macOS / Linux
@@ -112,8 +109,8 @@ Test season 2015/16 (3,326 matches), never used for training or tuning:
 | Majority baseline | 43.9% | 0.203 |
 
 The strongest pre-match signals are each team's earlier win rate **at the same venue** (home team at home, away team
-away). Full comparison: `outputs/tables/model_comparison.csv`; narrative and recommendations:
-`docs/eda_to_recommendation.md`.
+away). Full comparison: `outputs/tables/model_comparison.csv`. The full analysis, recommendations and limitations
+are in the final report, which is submitted separately.
 
 ## Documentation
 
@@ -123,8 +120,6 @@ away). Full comparison: `outputs/tables/model_comparison.csv`; narrative and rec
 | `logs/eda_insight_log.md` | EDA findings with evidence and modelling impact (EDA-01 onwards) |
 | `docs/data_dictionary.md` | Raw database columns and the engineered `features.csv` |
 | `docs/preprocessing_feature_log.md` | Preprocessing, feature engineering and split details |
-| `docs/eda_handoff.md` | What each phase needed from the EDA |
-| `docs/eda_to_recommendation.md` | EDA findings vs model results, recommendations and limitations |
 | `docs/ai_use_declaration.md` | AI-tool use, declared per member |
 
 ## Loading the data
@@ -145,12 +140,12 @@ team_attrs = load_team_attributes()
 ## Repository structure
 
 ```
-data/raw/          database.sqlite (not committed)
-data/processed/    engineered datasets (not committed)
-docs/              data dictionary, diagrams, member trackers
-logs/              decision log, EDA insight log, preprocessing log
-notebooks/         01 data understanding → 06 evaluation, run in order
-outputs/           figures, tables, predictions
-src/               shared Python modules
+data/raw/          database.sqlite (download, not committed)
+data/processed/    features.csv: engineered modelling dataset (committed)
+docs/              data dictionary, preprocessing/feature log, AI-use declaration, diagrams
+logs/              decision log, EDA insight log
+notebooks/         01_data_understanding → 08_model_selection, run in order
+outputs/           figures, tables and test predictions produced by the notebooks
+src/               shared Python modules (db, preprocessing, feature engineering, training, evaluation)
 models/            saved models (not committed)
 ```
