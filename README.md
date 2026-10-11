@@ -86,8 +86,10 @@ under a minute.
 | 7 | `06_evaluation.ipynb` | Yusuf | `outputs/tables/model_comparison.csv`, per-class metrics, confusion matrices | No |
 | 8 | `07_eda_to_recommendation.ipynb` | Ahamed | Accuracy and draw predictions by form gap | No |
 | 9 | `08_model_selection.ipynb` | Jassim | Final model choice, feature importance and coefficients | No |
+| 10 | `09_predict_fixture.ipynb` | Ahamed | Predicts any home vs away fixture with the saved model (needs notebook 05 run first) | Yes |
 
-`data/processed/features.csv` is committed, so notebooks 05–08 can be run without downloading the database.
+`data/processed/features.csv` is committed, so notebooks 05–08 can be run without downloading the database. Notebook 05 also saves the final model to
+`models/final_logistic_regression.joblib` (not committed; recreated on every run), which notebook 09 uses.
 
 **Expected reproducibility** (checked by a clean re-run of all nine notebooks on 2026-10-11):
 
@@ -147,5 +149,5 @@ logs/              decision log, EDA insight log
 notebooks/         01_data_understanding → 08_model_selection, run in order
 outputs/           figures, tables and test predictions produced by the notebooks
 src/               shared Python modules (db, preprocessing, feature engineering, training, evaluation)
-models/            saved models (not committed)
+models/            final model saved by notebook 05 (not committed)
 ```
