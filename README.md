@@ -98,8 +98,8 @@ under a minute.
 - Logistic Regression (the selected model), Decision Tree, KNN and the baseline reproduce exactly on any machine.
 - **Random Forest** can differ slightly between operating systems / CPU architectures even with fixed seeds and identical
   library versions (e.g. macOS on Apple silicon vs Windows on x86): about 2.5% of its test predictions and up to ±0.003
-  macro F1. Rankings and conclusions are unchanged. The final committed outputs are produced by one clean run on a
-  single machine before submission.
+  macro F1. Rankings and conclusions are unchanged. All committed outputs come from one final clean run of notebooks
+  01–08 on a single machine (macOS, Python 3.12) on 2026-10-11 (D-031).
 
 ## Key results
 
@@ -108,7 +108,7 @@ Test season 2015/16 (3,326 matches), never used for training or tuning:
 | Model | Accuracy | Macro F1 |
 |---|---|---|
 | **Logistic Regression (selected, D-029)** | 45.5% | **0.434** |
-| Random Forest | 44.4% | 0.434 |
+| Random Forest | 44.1% | 0.431 |
 | Majority baseline | 43.9% | 0.203 |
 
 The strongest pre-match signals are each team's earlier win rate **at the same venue** (home team at home, away team
