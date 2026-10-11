@@ -109,8 +109,8 @@ Test season 2015/16 (3,326 matches), never used for training or tuning:
 | Majority baseline | 43.9% | 0.203 |
 
 The strongest pre-match signals are each team's earlier win rate **at the same venue** (home team at home, away team
-away). Full comparison: `outputs/tables/model_comparison.csv`; full analysis, recommendations and limitations:
-the final report (`reports/IT3091_AI-39_Final_Report.docx`).
+away). Full comparison: `outputs/tables/model_comparison.csv`. The full analysis, recommendations and limitations
+are in the final report, which is submitted separately.
 
 ## Documentation
 
@@ -121,7 +121,6 @@ the final report (`reports/IT3091_AI-39_Final_Report.docx`).
 | `docs/data_dictionary.md` | Raw database columns and the engineered `features.csv` |
 | `docs/preprocessing_feature_log.md` | Preprocessing, feature engineering and split details |
 | `docs/ai_use_declaration.md` | AI-tool use, declared per member |
-| `reports/IT3091_AI-39_Final_Report.docx` | Final report: framing, workflow, EDA, preprocessing, models, evaluation, recommendations, limitations |
 
 ## Loading the data
 
@@ -147,7 +146,6 @@ docs/              data dictionary, preprocessing/feature log, AI-use declaratio
 logs/              decision log, EDA insight log
 notebooks/         01_data_understanding → 08_model_selection, run in order
 outputs/           figures, tables and test predictions produced by the notebooks
-reports/           final report
 src/               shared Python modules (db, preprocessing, feature engineering, training, evaluation)
 models/            saved models (not committed)
 ```
