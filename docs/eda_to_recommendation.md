@@ -1,6 +1,7 @@
 # From EDA to Recommendation
 
-Author: Ahamed M.A.U (IT24101779) · Week 6 · For: the Recommendation & Limitations section (Jassim M.N.M, Yusuf S.A)
+Author: Ahamed M.A.U (IT24101779) · Week 6 · Phase 8 updates (§1, §2 conclusion, §4–5): Jassim M.N.M (IT24103137)
+For: the Recommendation & Limitations section of the final report
 Evidence: `logs/eda_insight_log.md` (EDA-xx), `notebooks/07_eda_to_recommendation.ipynb`, `outputs/tables/`
 Test set: the full **2015/16 season (3,326 matches)**, never used for training or tuning (D-021, D-028)
 
@@ -33,7 +34,7 @@ Logistic Regression and Random Forest are effectively tied on macro F1: 0.434166
 | **EDA-09**: home-win share falls from 47.1% (2008/09) to 43.9% (2015/16) | The test season would have fewer home wins than training | ✅ Home wins: 46.0% in training vs **43.9% in the test season** |
 | **EDA-25**: the home side wins 29.5% → 68.8% across form-difference bins | Matches with a clear form gap would be easier to predict | ✅ Accuracy is **~60% when the form gap is 7+ points**, vs ~40% for evenly matched teams |
 | **EDA-26**: form vs goal difference correlation is only r = 0.27 | Macro F1 would stay modest | ✅ Best macro F1 is 0.434, a real improvement on the baseline but far from certainty |
-| **EDA-28**: closeness of form barely changes the draw rate | Draw predictions would be unreliable | ✅ The models predict a draw in **41–55%** of evenly matched games, but only **28.5%** end level. In mismatches they predict 4–5% draws, but **22%** end level |
+| **EDA-28**: closeness of form barely changes the draw rate | Draw predictions would be unreliable | ◐ **Partly.** The models predict a draw in **41–55%** of evenly matched games, but only **28.5%** end level. In mismatches they predict 4–5% draws, but **22%** end level |
 
 **Conclusion:** the EDA correctly anticipated the class-imbalance challenge, modest overall performance, and the value of form differences. The test-set subgroup analysis adds a useful detail: the models over-predict draws in close games and miss many draws in mismatches. This is an observed limitation, not something the EDA fully predicted.
 
@@ -91,6 +92,6 @@ Accuracy by pre-match form gap (`outputs/tables/accuracy_by_form_gap.csv`):
 | Random Forest results vary slightly across operating systems | About ±0.003 macro F1; the tiny LR/RF difference should not be treated as a robust ranking | PR #8 review |
 | Predicted probabilities were not calibrated or evaluated | Probability-based thresholds may be unreliable | Not evaluated in this project |
 
-## 6. AI-use declaration note
+## 6. AI-use declaration
 
-OpenAI Codex assisted with structuring the Phase 8 notebook, running the feature-importance analysis, and drafting the model-selection explanation and stakeholder-facing text. Reported metrics and interpretation outputs were generated from the project’s saved data and code. The student/team should review the final wording and outputs before submission.
+AI-tool use for this document and the analysis behind it is declared per member in `docs/ai_use_declaration.md`.

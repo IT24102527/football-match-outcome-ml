@@ -226,6 +226,8 @@ validated in `notebooks/04a_feature_validation.ipynb` (EDA-34–EDA-37).
   kept unsmoothed (EDA-39, D-025).
 - Features of the same team are moderately correlated (form vs goals scored r ≈ 0.72); home-team and away-team features
   are not (|r| ≤ 0.06) (EDA-33).
+- In the final models, `Home_Win_Rate` and `Away_Win_Rate` carry most of the predictive signal: they are the top two
+  features by permutation importance for both Logistic Regression and Random Forest (D-030, `notebooks/08_model_selection.ipynb`).
 
 ### 6.3 Considered but not included
 
