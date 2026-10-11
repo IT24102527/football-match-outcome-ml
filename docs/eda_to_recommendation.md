@@ -16,14 +16,14 @@ upcoming matches**.
 | Model | Accuracy | Macro F1 | Draw recall |
 |---|---|---|---|
 | **Logistic Regression** (balanced) | 45.46% | **0.4342** | 28.1% |
-| **Random Forest** (balanced) | 44.38% | **0.4341** | 36.5% |
+| **Random Forest** (balanced) | 44.14% | **0.4314** | 35.4% |
 | Decision Tree (balanced) | 42.81% | 0.4265 | 42.3% |
 | KNN | 43.08% | 0.3893 | 18.5% |
 | Majority baseline ("always Home Win") | 43.87% | 0.2033 | 0% |
 
-Logistic Regression and Random Forest are effectively tied on macro F1: 0.434166 vs 0.434126 (difference ≈0.00004). This is much smaller than the reported ±0.003 cross-operating-system variation for Random Forest (PR #8 review).
+Logistic Regression and Random Forest are effectively tied on macro F1: 0.4342 vs 0.4314 in the final run (difference ≈0.003). That gap is the same size as Random Forest's cross-operating-system variation: on Windows it scored 0.4341 (PR #8 review, D-031). So macro F1 does not meaningfully separate the two.
 
-**Final selection: Logistic Regression (balanced, C=1.0).** Since macro F1 does not meaningfully separate the top two, Logistic Regression is selected for its slightly higher accuracy (45.46% vs 44.38%) and more straightforward explanation through coefficient directions. Random Forest remains preferable if higher Draw recall is the main priority (36.5% vs 28.1%). The choice uses the model configurations selected on 2014/15; the 2015/16 test season was not used for further tuning.
+**Final selection: Logistic Regression (balanced, C=1.0).** Since macro F1 does not meaningfully separate the top two, Logistic Regression is selected for its slightly higher accuracy (45.46% vs 44.14%) and more straightforward explanation through coefficient directions. Random Forest remains preferable if higher Draw recall is the main priority (36.5% vs 28.1%). The choice uses the model configurations selected on 2014/15; the 2015/16 test season was not used for further tuning.
 
 ## 2. Did the EDA predict the model behaviour?
 
@@ -34,7 +34,7 @@ Logistic Regression and Random Forest are effectively tied on macro F1: 0.434166
 | **EDA-09**: home-win share falls from 47.1% (2008/09) to 43.9% (2015/16) | The test season would have fewer home wins than training | ✅ Home wins: 46.0% in training vs **43.9% in the test season** |
 | **EDA-25**: the home side wins 29.5% → 68.8% across form-difference bins | Matches with a clear form gap would be easier to predict | ✅ Accuracy is **~60% when the form gap is 7+ points**, vs ~40% for evenly matched teams |
 | **EDA-26**: form vs goal difference correlation is only r = 0.27 | Macro F1 would stay modest | ✅ Best macro F1 is 0.434, a real improvement on the baseline but far from certainty |
-| **EDA-28**: closeness of form barely changes the draw rate | Draw predictions would be unreliable | ◐ **Partly.** The models predict a draw in **41–55%** of evenly matched games, but only **28.5%** end level. In mismatches they predict 4–5% draws, but **22%** end level |
+| **EDA-28**: closeness of form barely changes the draw rate | Draw predictions would be unreliable | ◐ **Partly.** The models predict a draw in **41–54%** of evenly matched games, but only **28.5%** end level. In mismatches they predict 4–5% draws, but **22%** end level |
 
 **Conclusion:** the EDA correctly anticipated the class-imbalance challenge, modest overall performance, and the value of form differences. The test-set subgroup analysis adds a useful detail: the models over-predict draws in close games and miss many draws in mismatches. This is an observed limitation, not something the EDA fully predicted.
 
@@ -45,9 +45,9 @@ Accuracy by pre-match form gap (`outputs/tables/accuracy_by_form_gap.csv`):
 | Form gap (points in last 5) | Share of matches | Logistic Regression | Random Forest | Baseline |
 |---|---|---|---|---|
 | 0–1 (even) | 24.8% | 41.9% | 39.3% | 40.6% |
-| 2–3 | 29.7% | 40.2% | 38.2% | **46.1%** |
-| 4–6 | 29.3% | 45.5% | 45.9% | 44.3% |
-| **7+ (mismatch)** | 16.2% | **60.4%** | **60.7%** | 44.1% |
+| 2–3 | 29.7% | 40.2% | 38.0% | **46.1%** |
+| 4–6 | 29.3% | 45.5% | 45.5% | 44.3% |
+| **7+ (mismatch)** | 16.2% | **60.4%** | **60.4%** | 44.1% |
 
 - **Clear form gap (4+ points, ~45% of matches):** the models beat the baseline, by **+16 points** in mismatches.
 - **Close games (gap ≤ 3, ~55% of matches):** the models are **no more accurate than "the home team wins"**. Balanced
@@ -76,7 +76,7 @@ Accuracy by pre-match form gap (`outputs/tables/accuracy_by_form_gap.csv`):
    home side. Refit before each new season, keeping the same chronological validation (D-021, D-028).
 7. **Use Logistic Regression as the default decision-support model.** Its macro F1 is effectively tied with Random Forest,
    its accuracy is slightly higher, and its coefficient directions are easier to explain. If identifying more draws becomes
-   the priority, compare Random Forest as an alternative because it has higher Draw recall (36.5% vs 28.1%).
+   the priority, compare Random Forest as an alternative because it has higher Draw recall (35.4% vs 28.1%).
 
 ## 5. Limitations that bound these recommendations
 
