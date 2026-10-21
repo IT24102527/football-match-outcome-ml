@@ -1,0 +1,6 @@
+# Dashboard dependencies: the pinned project environment plus the dashboard-only packages (D-014, D-033).
+# Install from the repo root:  pip install -r dashboard/requirements.txt
+-r ../requirements.txt
+streamlit==1.66.0
+plotly==7.1.0
+pytest==8.3.3
