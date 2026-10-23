@@ -50,7 +50,12 @@ SCHEMA = {
     TABLES / "permutation_importance.csv": ["model", "feature", "macro_f1_drop_mean", "macro_f1_drop_std"],
     TABLES / "logistic_regression_coefficients.csv": ["Home Win", "Draw", "Away Win"],
     TABLES / "confusion_matrix_logistic_regression.csv": ["model", "actual", "predicted", "count"],
+    TABLES / "accuracy_by_form_gap.csv": ["Abs_Form_Diff", "matches", "share_of_matches", "logistic_regression",
+                                          "random_forest", "majority_baseline"],
+    TABLES / "draws_by_form_gap.csv": ["Abs_Form_Diff", "actual draw rate", "logistic_regression predicts Draw",
+                                       "random_forest predicts Draw"],
 }
+FORM_GAP_ORDER = ["0–1 (even)", "2–3", "4–6", "7+ (mismatch)"]   # bands from notebook 07, in order
 # Columns that are legitimately empty in some rows (e.g. hyperparameters that do not apply to a model)
 OPTIONAL_GAPS = {TABLES / "hyperparameter_tuning.csv", TABLES / "model_training_summary.csv"}
 
@@ -142,6 +147,27 @@ def load_hyperparameter_tuning():
 @_cache
 def load_permutation_importance():
     return _read(TABLES / "permutation_importance.csv")
+
+
+def _form_gap_table(name):
+    df = _read(TABLES / name)
+    unexpected = set(df["Abs_Form_Diff"]) - set(FORM_GAP_ORDER)
+    if unexpected:
+        raise DataContractError(f"{name} has unexpected form-gap bands: {sorted(unexpected)}")
+    df["Abs_Form_Diff"] = pd.Categorical(df["Abs_Form_Diff"], categories=FORM_GAP_ORDER, ordered=True)
+    return df.sort_values("Abs_Form_Diff").reset_index(drop=True)
+
+
+@_cache
+def load_accuracy_by_form_gap():
+    """Test-season accuracy per pre-match form-gap band (notebook 07): rates from 0 to 1, bands in order."""
+    return _form_gap_table("accuracy_by_form_gap.csv")
+
+
+@_cache
+def load_draws_by_form_gap():
+    """Actual draw rate and how often each model predicts a draw, per form-gap band (notebook 07)."""
+    return _form_gap_table("draws_by_form_gap.csv")
 
 
 @_cache
