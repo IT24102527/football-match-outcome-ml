@@ -3,19 +3,12 @@
 import ast
 import re
 
-import pandas as pd
 import streamlit as st
 
 from dashboard import data_access as da
 
 OUTCOMES = ["Home Win", "Draw", "Away Win"]
-OUTCOME_COLORS = {"Home Win": "#0072B2", "Draw": "#999999", "Away Win": "#E69F00"}
-
-
-@st.cache_data
-def read_table(name):
-    """Read one of the small output tables without bypassing the data contract."""
-    return pd.read_csv(da.TABLES / f"{name}.csv")
+OUTCOME_COLORS = {"Home Win": "#2a78d6", "Draw": "#eb6834", "Away Win": "#1baf7a"}
 
 
 @st.cache_data
