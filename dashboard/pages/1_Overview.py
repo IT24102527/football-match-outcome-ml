@@ -19,9 +19,9 @@ total = int(split.loc[split["split"] == "overall", "count"].sum())
 test_n = int(split.loc[split["split"] == "test", "count"].sum())
 
 c1, c2, c3, c4 = st.columns(4)
-c1.metric("Matches in the data", f"{total:,}")
+c1.metric("Matches used for modelling", f"{total:,}")
 c2.metric("Test matches (2015/16)", f"{test_n:,}")
-c3.metric(f"Best model macro F1 ({best.replace('_', ' ')})", f"{comparison.loc[best, 'macro_f1']:.3f}")
+c3.metric(f"Best model macro F1 ({da.MODEL_LABELS[best]})", f"{comparison.loc[best, 'macro_f1']:.3f}")
 c4.metric("Baseline macro F1 (always Home Win)", f"{comparison.loc[baseline, 'macro_f1']:.3f}")
 
 theme.caution(

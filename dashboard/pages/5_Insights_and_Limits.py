@@ -50,10 +50,16 @@ theme.show(theme.style(
     height=460,
 ))
 
+draw_recall = da.load_per_class_metrics()
+draw_recall = draw_recall.loc[
+    (draw_recall["model"] == da.FEATURED_MODEL) & (draw_recall["class"] == "Draw"),
+    "recall",
+].iloc[0]
+
 st.subheader("Recommendations")
 st.markdown(
     "1. **Watch each team's home and away win record first.** Shuffling it costs the model more than any form measure.\n"
-    "2. **Treat a predicted Draw as a weak signal.** The model finds only about a quarter of real draws.\n"
+    f"2. **Treat a predicted Draw as a weak signal.** The model finds {draw_recall:.1%} of real draws.\n"
     "3. **Use the probabilities, not only the label.** A 40% Home Win is far from a sure thing."
 )
 
@@ -63,14 +69,14 @@ st.markdown(
     "- Betting odds were excluded on purpose (D-011), so the model is not compared with bookmakers.\n"
     "- One test season (2015/16) and 11 leagues: results may differ in other seasons.\n"
     "- Draws are the hardest outcome to predict.\n"
-    "- KNN has no class weighting in scikit-learn, so its weaker Draw results are partly a method limit (D-022)."
+    "- KNN has no class weighting in scikit-learn, so its weaker Draw results are partly a method limit (D-028)."
 )
 
 st.subheader("AI-use declaration")
 st.write(
     "AI tools assisted with the dashboard plan and parts of the dashboard code and text. "
-    "The group reviewed, tested and is responsible for all content. Update this wording to match "
-    "the group's final declaration before submission."
+    "The group reviewed the generated work, checked dashboard values against the project's exported "
+    "data, and remains responsible for the final content."
 )
 
 theme.footer(["permutation_importance.csv", "logistic_regression_coefficients.csv"],

@@ -67,12 +67,12 @@ with col2:
     theme.show(theme.style(fig, "Home-win rate by season in the selection",
                            "Season", "Home-win rate (%)", height=460))
 
-goals = (
-    view.groupby("league_name")[["Home_Avg_Goals_Last_5", "Away_Avg_Goals_Last_5"]]
-    .mean()
-    .reset_index()
-    .melt("league_name", var_name="side", value_name="goals")
-)
+goals_by_league = view.groupby("league_name")[["Home_Avg_Goals_Last_5", "Away_Avg_Goals_Last_5"]].mean()
+home_goals = view["Home_Avg_Goals_Last_5"].mean()
+away_goals = view["Away_Avg_Goals_Last_5"].mean()
+home_higher_leagues = int((goals_by_league["Home_Avg_Goals_Last_5"] >
+                            goals_by_league["Away_Avg_Goals_Last_5"]).sum())
+goals = goals_by_league.reset_index().melt("league_name", var_name="side", value_name="goals")
 goals["side"] = goals["side"].map({
     "Home_Avg_Goals_Last_5": "Home team",
     "Away_Avg_Goals_Last_5": "Away team",
@@ -89,19 +89,24 @@ fig = px.bar(
     },
 )
 st.caption("Averages of each team's goals in its previous five matches, not the goals of the match itself.")
-theme.show(theme.style(fig, "Home teams enter matches scoring slightly more than away teams",
+goal_leader = "Home" if home_goals > away_goals else "Away"
+theme.show(theme.style(
+    fig,
+    f"{goal_leader} teams enter matches scoring more ({home_goals:.2f} home vs {away_goals:.2f} away); "
+    f"home is higher in {home_higher_leagues} of {len(goals_by_league)} leagues",
                        "League", "Average goals in previous 5 matches"))
 
 st.subheader("Does the form gap change the result? (2015/16 test season)")
-draws = theme.read_table("draws_by_form_gap")
-accuracy = theme.read_table("accuracy_by_form_gap")
+draws = da.load_draws_by_form_gap()
+accuracy = da.load_accuracy_by_form_gap()
+draws["actual draw rate (%)"] = draws["actual draw rate"] * 100
 c1, c2 = st.columns(2)
-fig = px.bar(draws, x="Abs_Form_Diff", y="actual draw rate",
-             text=(draws["actual draw rate"] * 100).round(0))
+fig = px.bar(draws, x="Abs_Form_Diff", y="actual draw rate (%)",
+             text=draws["actual draw rate (%)"].round(0))
 fig.update_traces(texttemplate="%{text}%", marker_color=theme.OUTCOME_COLORS["Draw"])
 with c1:
     theme.show(theme.style(fig, "Draws are rarer when the teams' form is far apart",
-                           "Form gap (points)", "Actual draw rate"))
+                           "Form gap (points)", "Actual draw rate (%)"))
 fig = px.bar(accuracy, x="Abs_Form_Diff", y="logistic_regression",
              text=(accuracy["logistic_regression"] * 100).round(0))
 fig.update_traces(texttemplate="%{text}%", marker_color=theme.OUTCOME_COLORS["Home Win"])
