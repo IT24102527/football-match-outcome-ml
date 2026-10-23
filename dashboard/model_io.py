@@ -76,3 +76,18 @@ def predict_proba(bundle, X):
     if not ((proba.sum(axis=1) - 1).abs() < 1e-9).all():
         raise ValueError("Predicted probabilities do not sum to 1.")
     return proba
+
+
+def explain(bundle, X, outcome, top=3):
+    """The inputs that pushed one match's prediction most towards (positive) or away from (negative) `outcome`.
+
+    For Logistic Regression each input's contribution is its coefficient for that outcome times its standardised
+    value. League indicators are left out, so the drivers are the football features.
+    """
+    model = bundle["model"]
+    pre, clf = model.named_steps["preprocessor"], model.named_steps["classifier"]
+    row = X[bundle["feature_columns"]].iloc[[0]]
+    z = pd.Series(pre.transform(row)[0], index=pre.get_feature_names_out())
+    coef = pd.Series(clf.coef_[list(clf.classes_).index(outcome)], index=z.index)
+    contrib = (coef * z).drop([c for c in z.index if c.startswith("league_id")])
+    return contrib.reindex(contrib.abs().sort_values(ascending=False).index).head(top)
