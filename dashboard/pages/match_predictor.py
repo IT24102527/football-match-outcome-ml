@@ -17,7 +17,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from dashboard import data_access as da  # noqa: E402
-from dashboard.model_io import CLASS_ORDER, explain, predict_proba  # noqa: E402
+from dashboard.model_io import CLASS_ORDER, explain, predict_proba, typical_values  # noqa: E402
 
 try:                                    # Member B's shared colours, once dashboard/theme.py exists
     from dashboard.theme import OUTCOME_COLORS  # noqa: E402
@@ -75,9 +75,11 @@ def confidence_note(proba):
 
 def drivers_table(X, outcome):
     contrib = explain(bundle, X, outcome)
+    typical = typical_values(bundle)
     return pd.DataFrame({
         "Input": [FEATURE_LABELS[f] for f in contrib.index],
-        "Value": [X.iloc[0][f] for f in contrib.index],
+        "This match": [X.iloc[0][f] for f in contrib.index],
+        "Typical match": [typical[f] for f in contrib.index],
         "Effect": ["pushes towards " + outcome if v > 0 else "pushes away from " + outcome for v in contrib],
     })
 
@@ -86,9 +88,12 @@ def show_prediction(proba, X):
     predicted = proba.idxmax()
     st.plotly_chart(probability_bar(proba), width="stretch", config={"displayModeBar": False})
     st.markdown(f"**Most likely: {predicted}.** {confidence_note(proba)}")
-    st.markdown("**What pushed this prediction most**")
+    st.markdown("**What pushed this prediction most, compared with a typical match**")
     st.dataframe(drivers_table(X, predicted), hide_index=True, width="stretch",
-                 column_config={"Value": st.column_config.NumberColumn(format="%.2f")})
+                 column_config={"This match": st.column_config.NumberColumn(format="%.2f"),
+                                "Typical match": st.column_config.NumberColumn(format="%.2f")})
+    st.caption("Each input is compared with its average over the training seasons. An input pushes the prediction "
+               "only as far as it differs from that typical value.")
 
 
 def open_in_what_if(row):
@@ -175,13 +180,16 @@ else:
     X = pd.DataFrame([values])[bundle["feature_columns"]]
     proba = predict_proba(bundle, X).iloc[0]
     show_prediction(proba, X)
-    clear = matches[matches["Abs_Form_Diff"] >= 7]
-    close = matches[matches["Abs_Form_Diff"] <= 3]
+    # Bands and accuracies come from notebook 07 (accuracy_by_form_gap.csv), so they cannot drift from the report
+    gaps = da.load_accuracy_by_form_gap().set_index("Abs_Form_Diff")
+    clear_band, close_bands = da.FORM_GAP_ORDER[-1], da.FORM_GAP_ORDER[:2]
+    close = gaps.loc[close_bands]
+    weighted = lambda col: (close[col] * close["matches"]).sum() / close["matches"].sum()
     st.caption(
         f"Form difference {values['Form_Diff']:+.0f} points. On the 2015/16 test season the model was right "
-        f"{clear['correct'].mean():.0%} of the time when one side led by 7+ points, but only "
-        f"{close['correct'].mean():.0%} when the gap was 3 or less, where always picking the home team scored "
-        f"{(close['actual'] == 'Home Win').mean():.0%}.")
+        f"{gaps.loc[clear_band, da.FEATURED_MODEL]:.0%} of the time in the {clear_band} form-gap band, but only "
+        f"{weighted(da.FEATURED_MODEL):.0%} in the {close_bands[0]} and {close_bands[1]} bands, where always "
+        f"picking the home team scored {weighted('majority_baseline'):.0%}.")
 
 st.divider()
 st.warning("Decision support, not a guarantee: the model has no injury, line-up or tactical data, draws are hard to "
