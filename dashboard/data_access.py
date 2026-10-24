@@ -48,6 +48,8 @@ SCHEMA = {
     TABLES / "model_training_summary.csv": ["model", "training_rows", "test_rows", "selected_config"],
     TABLES / "hyperparameter_tuning.csv": ["model", "validation_season", "macro_f1", "selected"],
     TABLES / "permutation_importance.csv": ["model", "feature", "macro_f1_drop_mean", "macro_f1_drop_std"],
+    TABLES / "draws_by_form_gap.csv": ["Abs_Form_Diff", "actual draw rate"],
+    TABLES / "accuracy_by_form_gap.csv": ["Abs_Form_Diff", "logistic_regression"],
     TABLES / "logistic_regression_coefficients.csv": ["Home Win", "Draw", "Away Win"],
     TABLES / "confusion_matrix_logistic_regression.csv": ["model", "actual", "predicted", "count"],
     TABLES / "accuracy_by_form_gap.csv": ["Abs_Form_Diff", "matches", "share_of_matches", "logistic_regression",
@@ -168,6 +170,16 @@ def load_accuracy_by_form_gap():
 def load_draws_by_form_gap():
     """Actual draw rate and how often each model predicts a draw, per form-gap band (notebook 07)."""
     return _form_gap_table("draws_by_form_gap.csv")
+
+
+@_cache
+def load_draws_by_form_gap():
+    return _read(TABLES / "draws_by_form_gap.csv")
+
+
+@_cache
+def load_accuracy_by_form_gap():
+    return _read(TABLES / "accuracy_by_form_gap.csv")
 
 
 @_cache
