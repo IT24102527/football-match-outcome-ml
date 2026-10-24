@@ -78,16 +78,33 @@ def predict_proba(bundle, X):
     return proba
 
 
-def explain(bundle, X, outcome, top=3):
+def typical_values(bundle):
+    """The training-season average of each numeric input: the 'typical match' that explain() compares against."""
+    pre = bundle["model"].named_steps["preprocessor"]
+    scaler = pre.named_transformers_["numeric"]
+    columns = pre.transformers_[0][2]
+    return pd.Series(scaler.mean_, index=columns)
+
+
+def explain(bundle, X, outcome, top=3, include_league=False):
     """The inputs that pushed one match's prediction most towards (positive) or away from (negative) `outcome`.
 
-    For Logistic Regression each input's contribution is its coefficient for that outcome times its standardised
-    value. League indicators are left out, so the drivers are the football features.
+    `X` must hold exactly one match. For Logistic Regression each input's contribution is its coefficient for that
+    outcome times its standardised value, i.e. how far the input is from the training-season average. A
+    contribution is therefore measured against a typical match, not against zero. Together with the intercept, the
+    contributions of all inputs (league indicators included) add up to the model's score for that outcome.
+
+    By default league indicators are left out so the drivers are the football features; `top=None` returns all.
     """
+    if len(X) != 1:
+        raise ValueError(f"explain() takes exactly one match; got {len(X)} rows")
     model = bundle["model"]
     pre, clf = model.named_steps["preprocessor"], model.named_steps["classifier"]
-    row = X[bundle["feature_columns"]].iloc[[0]]
+    row = X[bundle["feature_columns"]]
     z = pd.Series(pre.transform(row)[0], index=pre.get_feature_names_out())
     coef = pd.Series(clf.coef_[list(clf.classes_).index(outcome)], index=z.index)
-    contrib = (coef * z).drop([c for c in z.index if c.startswith("league_id")])
-    return contrib.reindex(contrib.abs().sort_values(ascending=False).index).head(top)
+    contrib = coef * z
+    if not include_league:
+        contrib = contrib.drop([c for c in z.index if c.startswith("league_id")])
+    contrib = contrib.reindex(contrib.abs().sort_values(ascending=False).index)
+    return contrib if top is None else contrib.head(top)
