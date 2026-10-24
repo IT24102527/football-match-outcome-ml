@@ -114,6 +114,40 @@ The strongest pre-match signals are each team's earlier win rate **at the same v
 away). Full comparison: `outputs/tables/model_comparison.csv`. The full analysis, recommendations and limitations
 are in the final report, which is submitted separately.
 
+## Run the dashboard
+
+An interactive Streamlit dashboard presents the data, the model comparison and a match predictor. It needs **no
+database and no saved model**: it reads committed files, and refits the selected Logistic Regression from
+`features.csv` in a few seconds when `models/` is empty (D-034).
+
+```bash
+./scripts/run_dashboard.sh          # macOS / Linux
+scripts\run_dashboard.bat           # Windows
+```
+
+The script creates `.venv` and installs `dashboard/requirements.txt` on the first run, then opens the dashboard at
+http://localhost:8501. To do it by hand:
+
+```bash
+pip install -r dashboard/requirements.txt      # the project pins plus streamlit, plotly, pytest (D-033)
+streamlit run dashboard/app.py
+```
+
+| Page | What it shows |
+|---|---|
+| Overview | The question, the data size, how often home teams win, and the best model against the baseline |
+| Data and home advantage | Home-win rate by season and league, recent goals, and how the form gap changes results |
+| Model comparison | Macro F1 and accuracy of every model, confusion matrices, per-class scores |
+| Match predictor | Replay any 2015/16 test match, or set each team's form in what-if mode, and see the probabilities and the inputs that drove them |
+| Insights and limits | What the results mean and where the model should not be trusted |
+
+Every number on the dashboard is read from `outputs/` or `data/processed/features.csv` through
+`dashboard/data_access.py`, which checks each file's columns, so the dashboard cannot disagree with the report.
+`outputs/dashboard/` (test predictions with probabilities, team names) is committed; regenerate it with
+`python scripts/export_dashboard_data.py` (needs the database) after re-running the notebooks.
+
+Tests for the data and model layer: `pytest tests` (about 2 seconds).
+
 ## Documentation
 
 | File | Contents |
@@ -142,12 +176,14 @@ team_attrs = load_team_attributes()
 ## Repository structure
 
 ```
+dashboard/         Streamlit dashboard: app.py, pages/, data_access.py, model_io.py
 data/raw/          database.sqlite (download, not committed)
 data/processed/    features.csv: engineered modelling dataset (committed)
 docs/              data dictionary, preprocessing/feature log, AI-use declaration, diagrams
 logs/              decision log, EDA insight log
 notebooks/         01_data_understanding → 08_model_selection, run in order
-outputs/           figures, tables and test predictions produced by the notebooks
+outputs/           figures, tables and test predictions produced by the notebooks; dashboard/ exports
+scripts/           dashboard export and run scripts
 src/               shared Python modules (db, preprocessing, feature engineering, training, evaluation)
 models/            final model saved by notebook 05 (not committed)
 ```
